@@ -1,0 +1,12 @@
+airflow:
+  airflow:
+    executor: KubernetesExecutor
+  workers:
+    enabled: false
+  flower:
+    enabled: false
+  redis:
+    enabled: false
+  logs:
+    persistence:
+      enabled: true

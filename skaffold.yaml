@@ -1,0 +1,53 @@
+apiVersion: skaffold/v2beta1
+kind: Config
+build:
+  artifacts:
+    - image: airflow
+      context: ./
+      sync:
+        manual:
+          - src: "dags/**/*.py"
+            dest: dags
+            strip: dags/
+  local:
+    useDockerCLI: true
+deploy:
+  helm:
+    releases:
+      - name: airflow
+        chartPath: helm
+        skipBuildDependencies: true
+        values:
+          airflow.airflow.image: airflow
+        setValueTemplates:
+          aws.datalake.accessKeyId: "{{.AWS_ACCESS_KEY_ID}}"
+          aws.datalake.secretAccessKey: "{{.AWS_SECRET_ACCESS_KEY}}"
+          aws.datalake.sessionToken: "{{.AWS_SESSION_TOKEN}}"
+          aws.holodeck.accessKeyId: "{{.AWS_ACCESS_KEY_ID}}"
+          aws.holodeck.secretAccessKey: "{{.AWS_SECRET_ACCESS_KEY}}"
+          aws.holodeck.sessionToken: "{{.AWS_SESSION_TOKEN}}"
+
+          airflow.scheduler.existingSecretConnections: airflow-aws-connections
+          airflow.airflow.executor: KubernetesExecutor
+          airflow.dags.persistence.enabled: false
+          airflow.workers.enabled: false
+          airflow.flower.enabled: false
+          airflow.redis.enabled: false
+          airflow.logs.persistence.enabled: true
+          airflow.airflow.config.AIRFLOW__KUBERNETES__DAGS_IN_IMAGE: " True"
+          airflow.airflow.config.GUNICORN_CMD_ARGS: "--log-level DEBUG"
+        # enable for Production dag sync
+        # airflow.dags.git.url: "git@github.com:CapChrisCap/kubernetes-airflow.git"
+        # airflow.dags.git.ref: master
+        # airflow.dags.git.repoHost: github.com
+        # airflow.dags.git.secret: airflow-git-keys
+        # airflow.dags.git.privateKeyName: id_rsa
+        # airflow.dags.git.gitSync.enabled: true
+        # airflow.dags.git.gitSync.resources.requests.memory: "64Mi"
+        imageStrategy:
+          helm: {}
+portForward:
+  - resourceType: service
+    resourceName: airflow-web
+    port: 8080
+    localPort: 8080
